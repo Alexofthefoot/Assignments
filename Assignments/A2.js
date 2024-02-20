@@ -15,6 +15,7 @@ var FSHADER_SOURCE =
   
 var bacteria_list = [];
 
+
 function main() {
   // Retrieve <canvas> element
   var canvas = document.getElementById('webgl');
@@ -32,6 +33,11 @@ function main() {
     return;
   }
 
+  // Register function (event handler) to be called on a mouse press
+  canvas.onmousedown = function(ev) {
+    click(ev, gl, canvas, bacteria_list);
+  };
+  
   // Specify the color for clearing <canvas>
   gl.clearColor(0, 0, 0, 1);
   // Enable the depth test
@@ -56,7 +62,7 @@ function main() {
 		[0.5, 0.0, 0.5, 1],
 		[0.2, 1.0, 0.2, 1]];
 
-	var number_of_bacterias = 5;
+	var number_of_bacterias = 2;
 		 
  	// generate a list of bacterias 
 	for (var i = 0; i < number_of_bacterias; i++) {
@@ -89,6 +95,9 @@ function grow(bacteria_list, speed){
 		if (bacteria_list[i][4]) {
 			// update only if it's alive
 			bacteria_list[i][2] = bacteria_list[i][2]+speed;
+			if (bacteria_list[i][2] > 10) {
+				console.log("game point");
+			}
 		}
 	}
 }
@@ -169,4 +178,42 @@ function draw_circle(gl, x, y, r, color){
 		 
 		// Unbind the buffer
 		 gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
+
+/** Handle mouse click event */
+function click(ev, gl, canvas, bacteria_list) {
+    var x = ev.clientX; // x coordinate of a mouse pointer
+    var y = ev.clientY; // y coordinate of a mouse pointer
+    console.log(x, y);
+
+    var rect = ev.target.getBoundingClientRect();
+
+    // Adjust for the aspect ratio
+    var aspectRatio = canvas.width / canvas.height;
+    var webglX = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2) * aspectRatio;
+    var webglY = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+
+    // Check if the click is inside any bacteria
+    for (var i = 0; i < bacteria_list.length; i++) {
+		if (bacteria_list[i][4]){
+			var bacteria = bacteria_list[i];
+			var centerX = bacteria[0];
+			var centerY = bacteria[1];
+			var radius = bacteria[2];
+
+			console.log("Center: " + centerX + ", " + centerY + "Radius:" + radius)
+
+			// Adjust for vertex shader translation
+			var adjustedX = centerX / 200.0; 
+			var adjustedY = centerY / 200.0;
+
+			// Check if the click is inside the bacteria
+			if (Math.sqrt((webglX - adjustedX) ** 2 + (webglY - adjustedY) ** 2) < radius) {
+				// If clicked inside, make the bacteria disappear
+				bacteria[4] = false; // Set alive status to false
+				console.log("Inside");
+				break; 
+			} 
+		}
+    }
 }
