@@ -15,6 +15,9 @@ var FSHADER_SOURCE =
   
 var bacteria_list = [];
 
+var computerScore = 0;
+var playerScore = 0;
+var number_of_bacteria = 5;
 
 function main() {
   // Retrieve <canvas> element
@@ -62,10 +65,10 @@ function main() {
 		[0.5, 0.0, 0.5, 1],
 		[0.2, 1.0, 0.2, 1]];
 
-	var number_of_bacterias = 2;
+	// var number_of_bacterias = 2;
 		 
  	// generate a list of bacterias 
-	for (var i = 0; i < number_of_bacterias; i++) {
+	for (var i = 0; i < number_of_bacteria; i++) {
 		 bacteria_list.push(generate_bacteria(colors[i], disk_radius));
 	} 
 
@@ -91,16 +94,29 @@ function main() {
 
 /** simulate the growth of bacteria */
 function grow(bacteria_list, speed){
+	if (computerScore > 2) {
+		return;
+	}
 	for (var i = 0; i < bacteria_list.length; i++) {
 		if (bacteria_list[i][4]) {
 			// update only if it's alive
-			bacteria_list[i][2] = bacteria_list[i][2]+speed;
-			if (bacteria_list[i][2] > 10) {
+
+			//Couldnt figure out arc, using radius instead
+			if (bacteria_list[i][2] > 60) {
+				computerScore++;
 				console.log("game point");
+				if (computerScore > 2) {	
+					var win = document.getElementById('winCondition');
+					win.innerHTML = "Computer Wins! Score:" + computerScore;
+				}
 			}
+			bacteria_list[i][2] = bacteria_list[i][2]+speed;
+			// calculate circle's radius
+			
 		}
 	}
 }
+
 
 // generate a random floating point value between 0 and max
 function getRandom(max) {
@@ -196,24 +212,31 @@ function click(ev, gl, canvas, bacteria_list) {
     // Check if the click is inside any bacteria
     for (var i = 0; i < bacteria_list.length; i++) {
 		if (bacteria_list[i][4]){
-			var bacteria = bacteria_list[i];
-			var centerX = bacteria[0];
-			var centerY = bacteria[1];
-			var radius = bacteria[2];
+			var currentBacteria = bacteria_list[i];
+			var centerX = currentBacteria[0];
+			var centerY = currentBacteria[1];
+			var radius = currentBacteria[2];
 
 			console.log("Center: " + centerX + ", " + centerY + "Radius:" + radius)
 
-			// Adjust for vertex shader translation
+			// Adjust due to vertex shader translation
 			var adjustedX = centerX / 200.0; 
 			var adjustedY = centerY / 200.0;
 
 			// Check if the click is inside the bacteria
 			if (Math.sqrt((webglX - adjustedX) ** 2 + (webglY - adjustedY) ** 2) < radius) {
-				// If clicked inside, make the bacteria disappear
-				bacteria[4] = false; // Set alive status to false
+				// Remove poisoned bacteria
+				currentBacteria[4] = false;
+				playerScore++;
+				if (playerScore == number_of_bacteria) {
+					console.log("player win");
+					var win = document.getElementById('winCondition');
+					win.innerHTML = "Player wins!";
+				}
 				console.log("Inside");
 				break; 
 			} 
 		}
     }
+
 }
