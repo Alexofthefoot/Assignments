@@ -87,7 +87,7 @@ function main() {
 }
 
 function initVertexBuffers(gl) {
-  var SPHERE_DIV = 15;
+  var detail = 15;
   var i, ai, si, ci;
   var j, aj, sj, cj;
   var p1, p2;
@@ -97,35 +97,38 @@ function initVertexBuffers(gl) {
   var normals = [];
   var indices = [];
 
-  // Generate vertices, normals, and colors
-  for (j = 0; j <= SPHERE_DIV; j++) {
-    aj = j * Math.PI / SPHERE_DIV;
+  // Generate coordinates
+  for (j = 0; j <= detail; j++) {
+    aj = j * Math.PI / detail;
     sj = Math.sin(aj);
     cj = Math.cos(aj);
-    for (i = 0; i <= SPHERE_DIV; i++) {
-      ai = i * 2 * Math.PI / SPHERE_DIV;
+    for (i = 0; i <= detail; i++) {
+      ai = i * 2 * Math.PI / detail;
       si = Math.sin(ai);
       ci = Math.cos(ai);
 
-      vertices.push(si * sj);  // x
-      vertices.push(cj);       // y
-      vertices.push(ci * sj);  // z
+      // x,y,z coordinates
+      vertices.push(si * sj);
+      vertices.push(cj);
+      vertices.push(ci * sj);
 
-      normals.push(si * sj);   // normals
+      // Noramls
+      normals.push(si * sj);
       normals.push(cj);
       normals.push(ci * sj);
 
-      colors.push(1.0);  // colors
+      // Colours
+      colors.push(0.7);
       colors.push(0.0);
-      colors.push(0.0);
+      colors.push(0.9);
     }
   }
 
   // Generate indices
-  for (j = 0; j < SPHERE_DIV; j++) {
-    for (i = 0; i < SPHERE_DIV; i++) {
-      p1 = j * (SPHERE_DIV+1) + i;
-      p2 = p1 + (SPHERE_DIV+1);
+  for (j = 0; j < detail; j++) {
+    for (i = 0; i < detail; i++) {
+      p1 = j * (detail+1) + i;
+      p2 = p1 + (detail+1);
 
       indices.push(p1);
       indices.push(p2);
@@ -179,3 +182,32 @@ function initArrayBuffer (gl, attribute, data, num, type) {
 
   return true;
 }
+
+
+// function makeRainbow(h, s, v) {
+//   var c = v * s;
+//   var hp = h / 60;
+//   var x = c * (1 - Math.abs(hp % 2 - 1));
+//   var rgb = [0, 0, 0];
+  
+//   if (0 <= hp && hp < 1) {
+//     rgb = [c, x, 0];
+//   } else if (1 <= hp && hp < 2) {
+//     rgb = [x, c, 0];
+//   } else if (2 <= hp && hp < 3) {
+//     rgb = [0, c, x];
+//   } else if (3 <= hp && hp < 4) {
+//     rgb = [0, x, c];
+//   } else if (4 <= hp && hp < 5) {
+//     rgb = [x, 0, c];
+//   } else if (5 <= hp && hp < 6) {
+//     rgb = [c, 0, x];
+//   }
+
+//   var m = v - c;
+//   rgb[0] += m;
+//   rgb[1] += m;
+//   rgb[2] += m;
+  
+//   return rgb;
+// }
