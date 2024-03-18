@@ -5,15 +5,16 @@ var VSHADER_SOURCE =
   'attribute vec4 a_Color;\n' + 
   'attribute vec4 a_Normal;\n' +        // Normal
   'uniform mat4 u_MvpMatrix;\n' +
+  'uniform mat4 u_NormalMatrix;\n' +
   'uniform vec3 u_LightColor;\n' +     // Light color
   'uniform vec3 u_LightDirection;\n' + // Light direction (in the world coordinate, normalized)
   'varying vec4 v_Color;\n' +
   'void main() {\n' +
   '  gl_Position = u_MvpMatrix * a_Position ;\n' +
   // Make the length of the normal 1.0
-  '  vec3 normal = normalize(a_Normal.xyz);\n' +
+  '  vec4 normal = u_NormalMatrix * a_Normal;\n' +
   // Dot product of the light direction and the orientation of a surface (the normal)
-  '  float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
+  '  float nDotL = max(dot(u_LightDirection, normalize(normal.xyz)), 0.0);\n' +
   // Calculate the color due to diffuse reflection
   '  vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
   '  v_Color = vec4(diffuse, a_Color.a);\n' +
@@ -59,6 +60,7 @@ function main() {
 
   // Get the storage locations of uniform variables and so on
   var u_MvpMatrix = gl.getUniformLocation(gl.program, 'u_MvpMatrix');
+  var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
   var u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
   if (!u_MvpMatrix || !u_LightColor || !u_LightDirection) { 
@@ -74,16 +76,39 @@ function main() {
   gl.uniform3fv(u_LightDirection, lightDirection.elements);
 
   // Calculate the view projection matrix
-  var mvpMatrix = new Matrix4();    // Model view projection matrix
-  mvpMatrix.setPerspective(30, canvas.width/canvas.height, 1, 100);
-  mvpMatrix.lookAt(3, 3, 7, 0, 0, 0, 0, 1, 0);
+  var vpMatrix = new Matrix4();    // Model view projection matrix
+  vpMatrix.setPerspective(30, canvas.width/canvas.height, 1, 100);
+  vpMatrix.lookAt(3, 3, 7, 0, 0, 0, 0, 1, 0);
   // Pass the model view projection matrix to the variable u_MvpMatrix
-  gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
+  // gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 
-  // Clear color and depth buffer
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  var currentAngle = 0.0;  // Current rotation angle
+  var modelMatrix = new Matrix4();  // Model matrix
+  var mvpMatrix = new Matrix4();    // Model view projection matrix
+  var normalMatrix = new Matrix4(); // Transformation matrix for normals
 
-  gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);   // Draw the cube
+  var tick = function() {
+    currentAngle = animate(currentAngle);  // Update the rotation angle
+
+    // Calculate the model matrix
+    modelMatrix.setRotate(currentAngle, 0, 1, 0); // Rotate around the y-axis
+    mvpMatrix.set(vpMatrix).multiply(modelMatrix);
+    gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
+
+    // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
+    normalMatrix.setInverseOf(modelMatrix);
+    normalMatrix.transpose();
+    gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
+
+    // Clear color and depth buffer
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // Draw the cube
+    gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
+
+    requestAnimationFrame(tick, canvas); // Request that the browser ?calls tick
+  };
+  tick();
 }
 
 function initVertexBuffers(gl) {
@@ -184,30 +209,17 @@ function initArrayBuffer (gl, attribute, data, num, type) {
 }
 
 
-// function makeRainbow(h, s, v) {
-//   var c = v * s;
-//   var hp = h / 60;
-//   var x = c * (1 - Math.abs(hp % 2 - 1));
-//   var rgb = [0, 0, 0];
-  
-//   if (0 <= hp && hp < 1) {
-//     rgb = [c, x, 0];
-//   } else if (1 <= hp && hp < 2) {
-//     rgb = [x, c, 0];
-//   } else if (2 <= hp && hp < 3) {
-//     rgb = [0, c, x];
-//   } else if (3 <= hp && hp < 4) {
-//     rgb = [0, x, c];
-//   } else if (4 <= hp && hp < 5) {
-//     rgb = [x, 0, c];
-//   } else if (5 <= hp && hp < 6) {
-//     rgb = [c, 0, x];
-//   }
+// Rotation angle (degrees/second)
+var ANGLE_STEP = 30.0;
+// Last time that this function was called
+var g_last = Date.now();
+function animate(angle) {
+  // Calculate the elapsed time
+  var now = Date.now();
+  var elapsed = now - g_last;
+  g_last = now;
+  // Update the current rotation angle (adjusted by the elapsed time)
+  var newAngle = angle + (ANGLE_STEP * elapsed) / 1000.0;
+  return newAngle %= 360;
+}
 
-//   var m = v - c;
-//   rgb[0] += m;
-//   rgb[1] += m;
-//   rgb[2] += m;
-  
-//   return rgb;
-// }
